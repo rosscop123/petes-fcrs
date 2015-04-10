@@ -1,0 +1,211 @@
+/*
+We highly recommend you use SASS and write your custom styles in sass/_custom.scss.
+However, this blank file is available if you prefer
+*/
+
+#background_img {
+    background-repeat: no-repeat;
+    background-image: url(../img/Dogs/background_dogs.png);
+    max-width: 100%;
+    min-height: 100%;
+    padding: 0;
+    padding-bottom: 2em;
+    position: relative;
+}
+.transparent {
+    background-color: #fff;
+    opacity: 0.6;
+    filter: alpha(opacity=60);
+    /* For IE8 and earlier */
+}
+.header_navbar {
+    height: 60px;
+    background-color: #fff;
+    margin: 0px;
+}
+.header_navbar ul li > a {
+    color: #000;
+    text-shadow: none;
+}
+.navbar li .dropdown ul > li a {
+    color: #000;
+    text-shadow: none;
+}
+.gumby-no-touch .navbar ul li:hover > a {
+    background: #D0D2D3;
+}
+.logo {
+    height: 60px;
+}
+.subnavbar {
+    max-width: 500px;
+}
+.social-facebook, .social-twitter, .social-youtube, .social-tumblr, .social-google {
+    float: left;
+    background-image: url(../img/social_icons.png);
+    background-repeat: no-repeat;
+    position: relative;
+    top: 25%;
+    margin-right: 10px;
+}
+.social-facebook {
+    height: 33px;
+    width: 33px;
+    background-position: -502px -68px;
+}
+.social-twitter {
+    height: 33px;
+    width: 33px;
+    background-position: -357px -68px;
+}
+.social-youtube {
+    height: 33px;
+    width: 33px;
+    background-position: -454px -117px;
+}
+.social-tumblr {
+    height: 33px;
+    width: 33px;
+    background-position: -308px -68px;
+}
+.social-google {
+    height: 33px;
+    width: 33px;
+    background-position: -308px -165px;
+}
+#pad_main_content {
+    padding-top: 100%;
+}
+.main_content {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+.news {
+    padding-left: 2em;
+    padding-right: 2em;
+}
+.news_subheading {
+    font-weight: bold;
+}
+.article_content img {
+    padding-top: 0.5em;
+    padding-right: 1em;
+    padding-bottom: 1em;
+    float: left;
+    width: 20%;
+}
+.contact_section {
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+.contact_details {
+    margin-left: 3em;
+    margin-right: 3em;
+}
+form {
+    margin-bottom: 0;
+    padding-bottom: 1em;
+}
+.email_form {
+    padding-top: 2em;
+}
+footer {
+    position: relative;
+    background-color: #000;
+    text-align: center;
+    color: #fff;
+}
+.footer_content {
+    padding: 3em 0px;
+}
+.footer_navbar {
+    color: #fff;
+    font-family: Arvo, serif;
+    font-size: 1em;
+}
+.footer_navbar li {
+    display: inline;
+    padding-left: 3em;
+    padding-right: 3em;
+}
+.footer_navbar a {
+    color: #fff;
+    font-family: Arvo, serif;
+    font-size: 1em;
+    font-weight: bold;
+}
+.footer_navbar a:hover {
+    text-decoration: underline;
+}
+.footer_contact {
+    padding-top: 1em;
+}
+.bold {
+    font-weight: bold;
+}
+.footer_copyright {
+    padding-top: 2em;
+}
+.modal > .content {
+    top: 5%;
+    width: 80%;
+    max-height: 90%;
+    height: 90%;
+}
+.view-port, .track .inner {
+    width: 100%;
+}
+.row .dog_content {
+    background-color: rgba(255, 255, 255, 0.6);
+    height: 100%;
+}
+.round_edges, .dog_content img {
+    border-radius: 5%;
+    overflow: hidden;
+}
+.dog_portrait {
+    padding: 1em;
+}
+.dog_bio {
+    padding-top: 1em;
+    padding-bottom: 1em;
+    font-size: 1.5em;
+}
+.dog_bio p {
+    font-size: 1em;
+}
+.gallery img {
+    width: 90%;
+}
+#image {
+    height: 100%;
+}
+.large_image {
+    display: block;
+    margin: auto;
+    height: 100%;
+}
+.modal > .content {
+    background: none;
+}
+.slick-prev:before, .slick-next:before {
+    color: black;
+}
+.report {
+    width: 100%;
+    background-size: cover;
+}
+.report_content{
+    margin-top: 3em; 
+}
+.report_content div{
+    padding-left: 1em;
+}
+.report_content ul{
+    padding-left: 2em;
+}
+.report_content li{
+    list-style: square;
+}
+.report_content img{
+    width: 200px;
+}
