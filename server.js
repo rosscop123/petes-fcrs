@@ -7,6 +7,7 @@ var fs = require('fs');
 var path = require('path');
 var QS = require('querystring');
 var sql = require('sqlite3');
+var crypto = require('crypto');
 sql.verbose();
 var port = 5000;
 
@@ -47,7 +48,8 @@ function start() {
 
 // Response codes: see http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 var OK = 200,
-    Redirect = 307,
+    forceGetRedirect = 303,
+    tempRedirect = 307,
     NotFound = 404,
     BadType = 415,
     Error = 500;
@@ -56,18 +58,19 @@ var OK = 200,
 function succeed(response, type, content) {
     var typeHeader = {
         'Content-Type': type
-    };
+    }
     response.writeHead(OK, typeHeader);
     response.write(content);
     response.end();
 }
 
 // Tell the browser to try again at a different URL.
-function redirect(response, url) {
+function redirect(response, url, code) {
     var locationHeader = {
         'Location': url
-    };
-    response.writeHead(Redirect, locationHeader);
+    }
+    // console.log(locationHeader);
+    response.writeHead(code, locationHeader);
     response.end();
 }
 
@@ -78,16 +81,21 @@ function fail(response, code) {
 }
 
 function serve(request, response) {
-    var admin = false;
     var url = URL.parse(request.url, true);
     var file = url.pathname;
-    var queries = url.query;
-	var file = "./Website" + file;
+    var file = "./Website" + file;
+    //Checks if path ends in /
+    //if so displays index.html of folder
+    if (ends(file, '/')){
+        file += 'index.html';
+    }
+    else if (ends(file, 'login')){
+        file += '.html';
+    }
     if(request.method == "POST"){
         var body = '';
         request.on('data', function (data) {
             body += data;
-
             // Too much POST data, kill the connection!
             if (body.length > 1e6){
                 request.connection.destroy();
@@ -98,51 +106,75 @@ function serve(request, response) {
             checkLoginDetails(queries.username, queries.password, function(loginSuccessful){
                 if(loginSuccessful){
                     console.log("Logged In Succesfully");
+                    try {
+                        var buf = crypto.randomBytes(64);
+                        // console.log('Have ' + buf.length + ' bytes of random data ' + buf);
+                    } catch (ex) {
+                        console.log('Error: ' + ex)
+                    }
+                    var sessionID = 'SessionID='+buf.toString('hex');
+                    var expires = 'expires='+ (new Date().toGMTString());
+                    response.setHeader('Set-Cookie', sessionID);
+                    redirect(response, '/', forceGetRedirect);
                 }
                 else{
                     console.log("Log In Failed");
+                    redirect(response, '/login.html?loginFailed=true', forceGetRedirect);
                 }
             });
-            // use post['blah'], etc.
         });
     }
-    var params = QS.parse(body);
-    if(queries != undefined && !isEmpty(queries)){
-        checkLoginDetails(queries.username, queries.password);
+    else{
+        var queries = url.query;
+        if(queries != undefined && !isEmpty(queries)){
+            //checkLoginDetails(queries.username, queries.password);
+        }
+        var displayError = displayContent(request, response, file);
+        if(displayError != 0){
+            return displayError;
+        }
     }
-    //Checks if path ends in /
-    //if so displays index.html of folder
-	if (ends(file, '/')){
-		file += 'index.html';
-	}
-    else if (ends(file, 'login')){
-        file += '.html';
-    }
+}
+
+function displayContent(request, response, file){
     var type = findType(request, path.extname(file));
     if(!type){
-        return fail(response, BadType);
-    }    
+        fail(response, BadType);
+        return BadType;
+    }
+    if(urlPathChecks(request, response, file) < 0){
+        return NotFound;
+    }
+    try {
+        fs.readFile(file, function(error, content) {
+            if (error) return fail(response, NotFound);
+            succeed(response, type, content);
+        });
+    } catch (err) {
+        fail(response, Error);
+        return Error
+    }
+    return 0;
+}
+
+function urlPathChecks(request, response, file){ 
     if (!inSite(file)) {
-        return fail(response, NotFound);
+        fail(response, NotFound);
+        return -1;
     }
     if (!matchCase(file)) {
-        return fail(response, NotFound);
+        fail(response, NotFound);
+        return -1;
     }
     if (!noSpaces(file)) {
-        return fail(response, NotFound);
+        fail(response, NotFound);
+        return -1;
     }
     if (!noParentDir(file) && !admin){
-        return fail(response, NotFound);
+        fail(response, NotFound);
+        return -1;
     }
-	try {
-        fs.readFile(file, ready);
-    } catch (err) {
-        return fail(response, Error);
-    }
-    function ready(error, content) {
-        if (error) return fail(response, NotFound);
-        succeed(response, type, content);
-    }
+    return 0;
 }
 
 // Find the content type (MIME type) to respond with.
@@ -213,7 +245,7 @@ function isEmpty(obj){
 function checkLoginDetails(username, password, callback){
     var loginSuccessful = false;
     var db = new sql.Database("Pete's FCRs.db");
-    var ps = db.prepare("select * from users where Username = ? AND password = ?", errorFunc);
+    var ps = db.prepare("select * from users where username = ? AND password = ?", errorFunc);
     ps.all(username, password, function (err, rows){
         if (err) throw err;
         loginSuccessful = (rows.length == 1);

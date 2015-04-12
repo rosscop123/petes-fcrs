@@ -209,3 +209,6 @@ footer {
 .report_content img{
     width: 200px;
 }
+#loginFailure {
+    visibility: hidden;
+}
