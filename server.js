@@ -95,11 +95,18 @@ function serve(request, response) {
         });
         request.on('end', function () {
             var queries = QS.parse(body);
-            checkLoginDetails(queries.username, queries.password);
+            checkLoginDetails(queries.username, queries.password, function(loginSuccessful){
+                if(loginSuccessful){
+                    console.log("Logged In Succesfully");
+                }
+                else{
+                    console.log("Log In Failed");
+                }
+            });
             // use post['blah'], etc.
         });
     }
-    // var params = QS.parse(body);
+    var params = QS.parse(body);
     if(queries != undefined && !isEmpty(queries)){
         checkLoginDetails(queries.username, queries.password);
     }
@@ -203,20 +210,22 @@ function isEmpty(obj){
 }
 
 //DATABASE FUNCTIONS
-function checkLoginDetails(username, password){
+function checkLoginDetails(username, password, callback){
+    var loginSuccessful = false;
     var db = new sql.Database("Pete's FCRs.db");
     var ps = db.prepare("select * from users where Username = ? AND password = ?", errorFunc);
     ps.all(username, password, function (err, rows){
         if (err) throw err;
-        for(var i = 0; i < rows.length; i++){
-            console.log("username: " + rows[i].Username + " password: " + rows[i].password);
-        }
-        if(rows.length == 0){
-            console.log("No results found");
-        }
+        loginSuccessful = (rows.length == 1);
+        callback(loginSuccessful);
     });
     ps.finalize();
     db.close(); 
+}
+
+function testfunc(loginSuccessful1, list){
+    console.log(loginSuccessful1 = list.length == 1);
+    return loginSuccessful1;
 }
 
 function errorFunc(e, row) {
