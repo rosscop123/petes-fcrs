@@ -1,10 +1,14 @@
+'use strict'
 var HTTP = require('http');
 var HTTPS = require('https');
 var QS = require('querystring');
 var URL = require('url');
 var fs = require('fs');
 var path = require('path');
-var port = 80;
+var QS = require('querystring');
+var sql = require('sqlite3');
+sql.verbose();
+var port = 5000;
 
 var types = {
     '.html': 'text/html, application/xhtml+xml',
@@ -77,12 +81,36 @@ function serve(request, response) {
     var admin = false;
     var url = URL.parse(request.url, true);
     var file = url.pathname;
+    var queries = url.query;
 	var file = "./Website" + file;
+    if(request.method == "POST"){
+        var body = '';
+        request.on('data', function (data) {
+            body += data;
+
+            // Too much POST data, kill the connection!
+            if (body.length > 1e6){
+                request.connection.destroy();
+            }
+        });
+        request.on('end', function () {
+            var queries = QS.parse(body);
+            checkLoginDetails(queries.username, queries.password);
+            // use post['blah'], etc.
+        });
+    }
+    // var params = QS.parse(body);
+    if(queries != undefined && !isEmpty(queries)){
+        checkLoginDetails(queries.username, queries.password);
+    }
     //Checks if path ends in /
     //if so displays index.html of folder
 	if (ends(file, '/')){
 		file += 'index.html';
 	}
+    else if (ends(file, 'login')){
+        file += '.html';
+    }
     var type = findType(request, path.extname(file));
     if(!type){
         return fail(response, BadType);
@@ -169,6 +197,33 @@ function noParentDir(file){
     return file.indexOf('..') < 0;
 }
 
+// Check if object is empty.
+function isEmpty(obj){
+    return (Object.getOwnPropertyNames(obj).length === 0);
+}
+
+//DATABASE FUNCTIONS
+function checkLoginDetails(username, password){
+    var db = new sql.Database("Pete's FCRs.db");
+    var ps = db.prepare("select * from users where Username = ? AND password = ?", errorFunc);
+    ps.all(username, password, function (err, rows){
+        if (err) throw err;
+        for(var i = 0; i < rows.length; i++){
+            console.log("username: " + rows[i].Username + " password: " + rows[i].password);
+        }
+        if(rows.length == 0){
+            console.log("No results found");
+        }
+    });
+    ps.finalize();
+    db.close(); 
+}
+
+function errorFunc(e, row) {
+    if (e) throw e;
+}
+
+//KEYS FOR HTTPS
 var key =
     "-----BEGIN RSA PRIVATE KEY-----\n" +
     "MIIEpQIBAAKCAQEAycE3rVt8kvynUuW5VGDDLjHYzXODwfRASYH/QQT02DsgyIXZ\n" +
