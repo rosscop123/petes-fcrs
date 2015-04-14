@@ -10,6 +10,8 @@ var sql = require('sqlite3');
 var crypto = require('crypto');
 sql.verbose();
 var port = 5000;
+var db = new sql.Database("Pete's FCRs.db");
+
 
 var types = {
     '.html': 'text/html, application/xhtml+xml',
@@ -36,15 +38,15 @@ var types = {
 };
 
 function start() {
-    var service = HTTP.createServer(serve);
-    // var options = {
-    //     key: key,
-    //     cert: cert
-    // };
-    //var service = HTTPS.createServer(options, serve);
+    // var service = HTTP.createServer(serve);
+    var options = {
+        key: key,
+        cert: cert
+    };
+    var service = HTTPS.createServer(options, serve);
     service.listen(process.env.PORT || port);
     console.log("Node app is running at localhost:" + process.env.PORT);
-} 
+}
 
 // Response codes: see http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 var OK = 200,
@@ -69,7 +71,6 @@ function redirect(response, url, code) {
     var locationHeader = {
         'Location': url
     }
-    // console.log(locationHeader);
     response.writeHead(code, locationHeader);
     response.end();
 }
@@ -86,63 +87,98 @@ function serve(request, response) {
     var file = "./Website" + file;
     //Checks if path ends in /
     //if so displays index.html of folder
-    if (ends(file, '/')){
+    if (ends(file, '/')) {
         file += 'index.html';
-    }
-    else if (ends(file, 'login')){
+    } else if (ends(file, 'login')) {
         file += '.html';
     }
-    if(request.method == "POST"){
-        var body = '';
-        request.on('data', function (data) {
-            body += data;
-            // Too much POST data, kill the connection!
-            if (body.length > 1e6){
-                request.connection.destroy();
+    var usersSessionID = request.headers.cookie;
+    if (usersSessionID != undefined) {
+        usersSessionID = usersSessionID.split('=')[1];
+    }
+    checkSessionID(usersSessionID, function(sessionDetails) {
+        console.log(sessionDetails);
+        if (sessionDetails != undefined) {
+            updateTimeout(sessionDetails.username);
+            if (ends(file, 'login.html')) {
+                redirect(response, '/', forceGetRedirect);
             }
-        });
-        request.on('end', function () {
-            var queries = QS.parse(body);
-            checkLoginDetails(queries.username, queries.password, function(loginSuccessful){
-                if(loginSuccessful){
-                    console.log("Logged In Succesfully");
-                    try {
-                        var buf = crypto.randomBytes(64);
-                        // console.log('Have ' + buf.length + ' bytes of random data ' + buf);
-                    } catch (ex) {
-                        console.log('Error: ' + ex)
-                    }
-                    var sessionID = 'SessionID='+buf.toString('hex');
-                    var expires = 'expires='+ (new Date().toGMTString());
-                    response.setHeader('Set-Cookie', sessionID);
-                    redirect(response, '/', forceGetRedirect);
+            if (file.toLowerCase() == './website/private.html') {
+                try {
+                    fs.readFile('./Private/private.html', function(error, content) {
+                        if (error) return fail(response, NotFound);
+                        succeed(response, types[".html"], content);
+                    });
+                } catch (err) {
+                    fail(response, Error);
+                    return Error
                 }
-                else{
-                    console.log("Log In Failed");
-                    redirect(response, '/login.html?loginFailed=true', forceGetRedirect);
+            } else {
+                var queries = url.query;
+                if (queries != undefined && !isEmpty(queries)) {
+                    //checkLoginDetails(queries.username, queries.password);
+                }
+                var displayError = displayContent(request, response, file);
+                if (displayError != OK) {
+                    return displayError;
+                }
+            }
+        } else if (request.method == "POST") {
+            var body = '';
+            request.on('data', function(data) {
+                body += data;
+                // Too much POST data, kill the connection!
+                if (body.length > 1e6) {
+                    request.connection.destroy();
                 }
             });
-        });
-    }
-    else{
-        var queries = url.query;
-        if(queries != undefined && !isEmpty(queries)){
-            //checkLoginDetails(queries.username, queries.password);
+            request.on('end', function() {
+                var queries = QS.parse(body);
+                checkLoginDetails(queries.username, queries.password, function(loginSuccessful) {
+                    if (loginSuccessful) {
+                        console.log("Logged In Succesfully");
+                        try {
+                            var sessionID = crypto.randomBytes(64).toString('hex');
+                        } catch (ex) {
+                            console.log('Error: ' + ex)
+                        }
+                        var name = 'SessionID=';
+                        previousLogoutUnsuccessful(queries.username, function(update) {
+                            if (update) {
+                                updateSessionID(queries.username, sessionID);
+                            } else {
+                                insertSessionID(queries.username, sessionID);
+                            }
+                            // var expires = 'expires='+ (new Date().toGMTString());
+                            response.setHeader('Set-Cookie', name + sessionID);
+                            redirect(response, '/', forceGetRedirect);
+                        });
+                    } else {
+                        console.log("Log In Failed");
+                        redirect(response, '/login.html?loginFailed=true', forceGetRedirect);
+                    }
+                });
+            });
+        } else {
+            var queries = url.query;
+            if (queries != undefined && !isEmpty(queries)) {
+                //checkLoginDetails(queries.username, queries.password);
+            }
+            var displayError = displayContent(request, response, file);
+            if (displayError != OK) {
+                return displayError;
+            }
         }
-        var displayError = displayContent(request, response, file);
-        if(displayError != 0){
-            return displayError;
-        }
-    }
+    });
 }
 
-function displayContent(request, response, file){
+function displayContent(request, response, file) {
     var type = findType(request, path.extname(file));
-    if(!type){
+    if (!type) {
         fail(response, BadType);
         return BadType;
     }
-    if(urlPathChecks(request, response, file) < 0){
+    if (urlPathChecks(request, response, file) < 0) {
         return NotFound;
     }
     try {
@@ -154,10 +190,10 @@ function displayContent(request, response, file){
         fail(response, Error);
         return Error
     }
-    return 0;
+    return OK;
 }
 
-function urlPathChecks(request, response, file){ 
+function urlPathChecks(request, response, file) {
     if (!inSite(file)) {
         fail(response, NotFound);
         return -1;
@@ -170,7 +206,7 @@ function urlPathChecks(request, response, file){
         fail(response, NotFound);
         return -1;
     }
-    if (!noParentDir(file) && !admin){
+    if (!noParentDir(file) && !admin) {
         fail(response, NotFound);
         return -1;
     }
@@ -191,14 +227,16 @@ function findType(request, extension) {
 
 // Check whether a string starts with a prefix, or ends with a suffix
 function starts(s, x) {
-	return s.lastIndexOf(x, 0) == 0;
+    return s.lastIndexOf(x, 0) == 0;
 }
+
 function ends(s, x) {
-	return s.indexOf(x, s.length-x.length) - (s.length-x.length) == 0;
+    return s.indexOf(x, s.length - x.length) - (s.length - x.length) == 0;
 }
 
 // Check that a file is inside the site.  This is essential for security.
 var site = fs.realpathSync('.') + path.sep;
+
 function inSite(file) {
     var real;
     try {
@@ -232,32 +270,79 @@ function noSpaces(name) {
 }
 
 // Check that the path does not try to gain access to the parent directory.
-function noParentDir(file){
+function noParentDir(file) {
     return file.indexOf('..') < 0;
 }
 
 // Check if object is empty.
-function isEmpty(obj){
+function isEmpty(obj) {
     return (Object.getOwnPropertyNames(obj).length === 0);
 }
 
 //DATABASE FUNCTIONS
-function checkLoginDetails(username, password, callback){
+function checkLoginDetails(username, password, callback) {
     var loginSuccessful = false;
-    var db = new sql.Database("Pete's FCRs.db");
     var ps = db.prepare("select * from users where username = ? AND password = ?", errorFunc);
-    ps.all(username, password, function (err, rows){
+    ps.all(username, password, function(err, rows) {
         if (err) throw err;
         loginSuccessful = (rows.length == 1);
         callback(loginSuccessful);
     });
     ps.finalize();
-    db.close(); 
 }
 
-function testfunc(loginSuccessful1, list){
-    console.log(loginSuccessful1 = list.length == 1);
-    return loginSuccessful1;
+function insertSessionID(username, sessionID) {
+    var expiryTime = new Date();
+    // expiryTime.setMinutes(expiryTime.getMinutes() + 30);
+    expiryTime.setSeconds(expiryTime.getSeconds() + 10);
+    var ps = db.prepare("insert INTO sessionIDs values (?, ?, ?)", errorFunc);
+    ps.run(username, sessionID, expiryTime);
+    ps.finalize();
+}
+
+function updateTimeout(username) {
+    var expiryTime = new Date();
+    // expiryTime.setMinutes(expiryTime.getMinutes() + 30);
+    expiryTime.setSeconds(expiryTime.getSeconds() + 10);
+    var ps = db.prepare("update sessionIDs set timeout = ? where username = ?", errorFunc);
+    ps.run(expiryTime, username);
+    ps.finalize();
+}
+
+function updateSessionID(username, sessionID) {
+    var expiryTime = new Date();
+    // expiryTime.setMinutes(expiryTime.getMinutes() + 30);
+    expiryTime.setSeconds(expiryTime.getSeconds() + 10);
+    var ps = db.prepare("update sessionIDs set sessionID = ?, timeout = ? where username = ?", errorFunc);
+    ps.run(sessionID, expiryTime, username);
+    ps.finalize();
+}
+
+function previousLogoutUnsuccessful(username, callback) {
+    var ps = db.prepare("select * from sessionIDs where username = ?", errorFunc);
+    ps.all(username, function(err, rows) {
+        if (err) throw err;
+        callback(rows.length == 1)
+    });
+    ps.finalize();
+}
+
+function checkSessionID(sessionID, callback) {
+    var ps = db.prepare("select * from sessionIDs where sessionID = ?", errorFunc);
+    ps.all(sessionID, function(err, rows) {
+        if (err) throw err;
+        if (rows.length == 1) {
+            console.log(rows[0].timeout > (new Date()));
+            if (rows[0].timeout > (new Date())) {
+                callback(rows[0]);
+            } else {
+                callback(undefined);
+            }
+        } else {
+            callback(undefined);
+        }
+    });
+    ps.finalize();
 }
 
 function errorFunc(e, row) {
@@ -294,7 +379,7 @@ var key =
     "3NS5lZasetHCyT359f1aNVlO41qqpB0Dtjzh2EgnOoZxhREpQHRftks=\n" +
     "-----END RSA PRIVATE KEY-----"
 
-var cert = 
+var cert =
     "-----BEGIN CERTIFICATE-----\n" +
     "MIIDKjCCAhICCQC2zUROIeJxJDANBgkqhkiG9w0BAQsFADBXMQswCQYDVQQGEwJV\n" +
     "SzETMBEGA1UECAwKU29tZS1TdGF0ZTEQMA4GA1UEBwwHQnJpc3RvbDEhMB8GA1UE\n" +
