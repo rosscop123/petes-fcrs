@@ -82,6 +82,7 @@ function fail(response, code) {
 }
 
 function serve(request, response) {
+    var currentUser = 'guest';
     var url = URL.parse(request.url, true);
     var file = url.pathname;
     var file = "./Website" + file;
@@ -97,33 +98,11 @@ function serve(request, response) {
         usersSessionID = usersSessionID.split('=')[1];
     }
     checkSessionID(usersSessionID, function(sessionDetails) {
-        console.log(sessionDetails);
         if (sessionDetails != undefined) {
-            updateTimeout(sessionDetails.username);
-            if (ends(file, 'login.html')) {
-                redirect(response, '/', forceGetRedirect);
-            }
-            if (file.toLowerCase() == './website/private.html') {
-                try {
-                    fs.readFile('./Private/private.html', function(error, content) {
-                        if (error) return fail(response, NotFound);
-                        succeed(response, types[".html"], content);
-                    });
-                } catch (err) {
-                    fail(response, Error);
-                    return Error
-                }
-            } else {
-                var queries = url.query;
-                if (queries != undefined && !isEmpty(queries)) {
-                    //checkLoginDetails(queries.username, queries.password);
-                }
-                var displayError = displayContent(request, response, file);
-                if (displayError != OK) {
-                    return displayError;
-                }
-            }
-        } else if (request.method == "POST") {
+            currentUser = sessionDetails.username;
+            updateTimeout(currentUser);
+        }
+        if(request.method == "POST") {
             var body = '';
             request.on('data', function(data) {
                 body += data;
@@ -134,42 +113,85 @@ function serve(request, response) {
             });
             request.on('end', function() {
                 var queries = QS.parse(body);
-                checkLoginDetails(queries.username, queries.password, function(loginSuccessful) {
-                    if (loginSuccessful) {
-                        console.log("Logged In Succesfully");
-                        try {
-                            var sessionID = crypto.randomBytes(64).toString('hex');
-                        } catch (ex) {
-                            console.log('Error: ' + ex)
-                        }
-                        var name = 'SessionID=';
-                        previousLogoutUnsuccessful(queries.username, function(update) {
-                            if (update) {
-                                updateSessionID(queries.username, sessionID);
-                            } else {
-                                insertSessionID(queries.username, sessionID);
-                            }
-                            // var expires = 'expires='+ (new Date().toGMTString());
-                            response.setHeader('Set-Cookie', name + sessionID);
-                            redirect(response, '/', forceGetRedirect);
-                        });
-                    } else {
-                        console.log("Log In Failed");
-                        redirect(response, '/login.html?loginFailed=true', forceGetRedirect);
-                    }
-                });
+                if(queryIsLogin(queries) && currentUser == 'guest'){
+                    checkLoginDetails(queries, response, checkLoginCallback);
+                }
+                else if(queryIsContact(queries)){
+                    submitContactInfo(queries, request, response, file);
+                }
             });
         } else {
-            var queries = url.query;
-            if (queries != undefined && !isEmpty(queries)) {
-                //checkLoginDetails(queries.username, queries.password);
+            if(currentUser != 'guest'){
+                if (ends(file, 'login.html')) {
+                    redirect(response, '/', forceGetRedirect);
+                }
+                if (file.toLowerCase() == './website/private.html') {
+                    try {
+                        fs.readFile('./Private/private.html', function(error, content) {
+                            if (error) return fail(response, NotFound);
+                            succeed(response, types[".html"], content);
+                        });
+                    } catch (err) {
+                        fail(response, Error);
+                        return Error
+                    }
+                } else {
+                    var queries = url.query;
+                    if (queries != undefined && !isEmpty(queries)) {
+                        //checkLoginDetails(queries.username, queries.password);
+                    }
+                    var displayError = displayContent(request, response, file);
+                    if (displayError != OK) {
+                        return displayError;
+                    }
+                }
             }
+            var queries = url.query;
             var displayError = displayContent(request, response, file);
             if (displayError != OK) {
                 return displayError;
             }
         }
     });
+}
+
+function queryIsLogin(queries){
+    var propertyNames = Object.getOwnPropertyNames(queries);
+    if(propertyNames[0] == 'username' && propertyNames[1] == 'password'){
+        return true;
+    }
+    return false;
+}
+function queryIsContact(queries){
+    var propertyNames = Object.getOwnPropertyNames(queries);
+    if(propertyNames[0] == 'Name' && propertyNames[1] == 'Email' && propertyNames[2] == 'Message'){
+        return true;
+    }
+    return false;
+}
+function checkLoginCallback(loginSuccessful, queries, response){
+    if (loginSuccessful) {
+        console.log("Logged In Succesfully");
+        try {
+            var sessionID = crypto.randomBytes(64).toString('hex');
+        } catch (ex) {
+            console.log('Error: ' + ex)
+        }
+        var name = 'SessionID=';
+        previousLogoutUnsuccessful(queries.username, function(update) {
+            if (update) {
+                updateSessionID(queries.username, sessionID);
+            } else {
+                insertSessionID(queries.username, sessionID);
+            }
+            // var expires = 'expires='+ (new Date().toGMTString());
+            response.setHeader('Set-Cookie', name + sessionID);
+            redirect(response, '/', forceGetRedirect);
+        });
+    } else {
+        console.log("Log In Failed");
+        redirect(response, '/login.html?loginFailed=true', forceGetRedirect);
+    }
 }
 
 function displayContent(request, response, file) {
@@ -280,21 +302,44 @@ function isEmpty(obj) {
 }
 
 //DATABASE FUNCTIONS
-function checkLoginDetails(username, password, callback) {
-    var loginSuccessful = false;
-    var ps = db.prepare("select * from users where username = ? AND password = ?", errorFunc);
-    ps.all(username, password, function(err, rows) {
+function checkLoginDetails(queries, response, callback) {
+    var username = queries.username;
+    var password = queries.password;
+    var ps = db.prepare("select * from users where username = ?", errorFunc);
+    ps.all(username, function(err, rows) {
         if (err) throw err;
-        loginSuccessful = (rows.length == 1);
-        callback(loginSuccessful);
+        if(rows.length == 1){
+            var saltedPassword = toHex(password) + rows[0].salt;
+            var sha256 = crypto.createHash('sha256');
+            sha256.update(saltedPassword);
+            if(sha256.digest('hex') == rows[0].password){
+                callback(true, queries, response);
+            }
+            else{
+                callback(false, queries, response);
+            }
+        }
+        else{
+            callback(false, queries, response);
+        }
+    });
+    ps.finalize();
+}
+
+function submitContactInfo(queries, request, response, file, callback) {
+    var name = queries.Name;
+    var email = queries.Email;
+    var message = queries.Message;
+    var ps = db.prepare("insert into messages values (?, ?, ?, ?)", errorFunc);
+    ps.all(name, email, message, new Date(), function(err, rows) {
+        displayContent(request, response, file);
     });
     ps.finalize();
 }
 
 function insertSessionID(username, sessionID) {
     var expiryTime = new Date();
-    // expiryTime.setMinutes(expiryTime.getMinutes() + 30);
-    expiryTime.setSeconds(expiryTime.getSeconds() + 10);
+    expiryTime.setMinutes(expiryTime.getMinutes() + 30);
     var ps = db.prepare("insert INTO sessionIDs values (?, ?, ?)", errorFunc);
     ps.run(username, sessionID, expiryTime);
     ps.finalize();
@@ -302,8 +347,7 @@ function insertSessionID(username, sessionID) {
 
 function updateTimeout(username) {
     var expiryTime = new Date();
-    // expiryTime.setMinutes(expiryTime.getMinutes() + 30);
-    expiryTime.setSeconds(expiryTime.getSeconds() + 10);
+    expiryTime.setMinutes(expiryTime.getMinutes() + 30);
     var ps = db.prepare("update sessionIDs set timeout = ? where username = ?", errorFunc);
     ps.run(expiryTime, username);
     ps.finalize();
@@ -311,8 +355,7 @@ function updateTimeout(username) {
 
 function updateSessionID(username, sessionID) {
     var expiryTime = new Date();
-    // expiryTime.setMinutes(expiryTime.getMinutes() + 30);
-    expiryTime.setSeconds(expiryTime.getSeconds() + 10);
+    expiryTime.setMinutes(expiryTime.getMinutes() + 30);
     var ps = db.prepare("update sessionIDs set sessionID = ?, timeout = ? where username = ?", errorFunc);
     ps.run(sessionID, expiryTime, username);
     ps.finalize();
@@ -332,7 +375,6 @@ function checkSessionID(sessionID, callback) {
     ps.all(sessionID, function(err, rows) {
         if (err) throw err;
         if (rows.length == 1) {
-            console.log(rows[0].timeout > (new Date()));
             if (rows[0].timeout > (new Date())) {
                 callback(rows[0]);
             } else {
@@ -347,6 +389,14 @@ function checkSessionID(sessionID, callback) {
 
 function errorFunc(e, row) {
     if (e) throw e;
+}
+
+function toHex(str) {
+    var result = '';
+    for (var i=0; i<str.length; i++) {
+      result += str.charCodeAt(i).toString(16);
+    }
+    return result;
 }
 
 //KEYS FOR HTTPS

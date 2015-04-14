@@ -43,15 +43,15 @@
                 <h3> contact </h3>
                 <div class="contact_details">
                     Fill out the form below to contact us directly.
-                    <form class="email_form">
+                    <form id="emailForm" class="email_form" action="contact.html" method="post">
                         <div class="field">
-                            <input id="Name" class="input" type="text" placeholder="Name" />
+                            <input name="Name" class="input" type="text" placeholder="Name" />
                         </div>
                         <div class="field">
-                            <input id="Email" class="input" type="email" placeholder="Email" />
+                            <input name="Email" class="input" type="email" placeholder="Email" />
                         </div>
                         <div class="field">
-                            <textarea id="Message" class="input textarea" placeholder="Message"></textarea>
+                            <textarea name="Message" class="input textarea" placeholder="Message"></textarea>
                         </div>
                         <div class="medium default btn submitButton">
                             <input type="submit" value="Submit" />
