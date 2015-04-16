@@ -2,7 +2,7 @@
 var sql = require("sqlite3");
 sql.verbose();
 var db = new sql.Database("Pete's FCRs.db");
-db.each("select * from messages", function(err, rows){
+db.each("select * from sessionIDs", function(err, rows){
 	console.log(rows);
 });
 db.close();

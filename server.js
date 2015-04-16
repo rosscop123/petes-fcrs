@@ -82,10 +82,10 @@ function fail(response, code) {
 }
 
 function serve(request, response) {
-    var currentUser = 'guest';
     var url = URL.parse(request.url, true);
     var file = url.pathname;
     var file = "./Website" + file;
+    var currentUser = 'guest';
     //Checks if path ends in /
     //if so displays index.html of folder
     if (ends(file, '/')) {
@@ -102,6 +102,15 @@ function serve(request, response) {
             currentUser = sessionDetails.username;
             updateTimeout(currentUser);
         }
+        var currentUserObj = {
+            user: currentUser
+        };
+        var outputFilename = 'Website/Website.json';
+        fs.writeFile(outputFilename, JSON.stringify(currentUserObj, null, 4), function(err) {
+            if (err) {
+                console.log(err);
+            }
+        });
         if(request.method == "POST") {
             var body = '';
             request.on('data', function(data) {
@@ -121,7 +130,13 @@ function serve(request, response) {
                 }
             });
         } else {
-            if(currentUser != 'guest'){
+            var queries = url.query;
+            if(queries.logout != undefined){
+                console.log("Logged out succeeded");
+                logout(currentUser);
+                redirect(response, "/", forceGetRedirect);
+            }
+            else if(currentUser != 'guest'){
                 if (ends(file, 'login.html')) {
                     redirect(response, '/', forceGetRedirect);
                 }
@@ -146,7 +161,6 @@ function serve(request, response) {
                     }
                 }
             }
-            var queries = url.query;
             var displayError = displayContent(request, response, file);
             if (displayError != OK) {
                 return displayError;
@@ -384,6 +398,12 @@ function checkSessionID(sessionID, callback) {
             callback(undefined);
         }
     });
+    ps.finalize();
+}
+
+function logout(currentUser){
+    var ps = db.prepare("delete from sessionIDs where username = ?", errorFunc);
+    ps.run(currentUser);
     ps.finalize();
 }
 

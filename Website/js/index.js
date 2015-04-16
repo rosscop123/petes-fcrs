@@ -5,6 +5,11 @@ window.onload = function() {
     $("#includeSocialBar").load("socialbar.html"); 
     $("#includeGallery").load("gallery.html"); 
     $("#includeFooter").load("footer.html"); 
+    var jsonFile = 'Website.json';
+	$.getJSON(jsonFile, function(content) {
+    	console.log(content);
+    	document.getElementById("userWelcomeInner").innerHTML += content.user;
+	});
 }
 window.onresize = function(event) {
     document.getElementById("background_img").style.width = $(window).width() + "px";

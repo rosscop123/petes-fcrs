@@ -27,6 +27,9 @@ However, this blank file is available if you prefer
     color: #000;
     text-shadow: none;
 }
+.navbar ul{
+    float: left;
+}
 .navbar li .dropdown ul > li a {
     color: #000;
     text-shadow: none;
@@ -211,4 +214,15 @@ footer {
 }
 #loginFailure {
     visibility: hidden;
+}
+#userWelcome {
+    position:absolute; 
+    top: 0px; 
+    right: 2em;
+    bottom: 0px;
+}
+#userWelcomeInner {
+    height:60px; 
+    display:table-cell; 
+    vertical-align:middle; 
 }
