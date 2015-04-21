@@ -226,3 +226,7 @@ footer {
     display:table-cell; 
     vertical-align:middle; 
 }
+#addNews {
+    right: 2em;
+    display: none;
+}

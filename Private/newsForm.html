@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB">
 
 <head>
-    <title>Log in</title>
+    <title>News Form</title>
 
     <meta charset="utf-8" />
 
@@ -29,7 +29,7 @@
 
     <script src="js/plugins.js"></script>
     <script src="js/gumbyMain.js"></script>
-    <script type="text/javascript" src="js/login.js"></script>
+    <script type="text/javascript" src="js/contact.js"></script>
 
 </head>
 
@@ -40,15 +40,14 @@
         <div id="includeSocialBar"></div>
         <div class="row contact_section">
             <div class="main_content">
-                <div id="loginFailure">Login Failed</div>
-                <h3> Log in </h3>
+                <h3> Enter News Article </h3>
                 <div class="contact_details">
-                    <form id="loginForm" action="loginUser" method="post">
+                    <form id="emailForm" class="email_form" action="submitNews" method="post">
                         <div class="field">
-                            <input class="input" type="text" name="username" placeholder="Username" />
+                            <input name="Title" class="input" type="text" placeholder="Title" />
                         </div>
                         <div class="field">
-                            <input class="input" type="password" name="password" placeholder="Password" />
+                            <textarea name="Content" class="input textarea" placeholder="Content"></textarea>
                         </div>
                         <div class="medium default btn submitButton">
                             <input type="submit" value="Submit" />

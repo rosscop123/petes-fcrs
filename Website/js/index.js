@@ -7,9 +7,22 @@ window.onload = function() {
     $("#includeFooter").load("footer.html"); 
     var jsonFile = 'Website.json';
 	$.getJSON(jsonFile, function(content) {
-    	console.log(content);
-    	document.getElementById("userWelcomeInner").innerHTML += content.user;
-	});
+        if(content.user != 'guest'){
+    	    document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/?logout=true">Logout</a>)';
+            document.getElementById("addNews").style.display = "block";
+	    } else {
+           document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/login.html">Login</a>)'; 
+        }  
+    });
+    var jsonFile = 'News.json';
+    $.getJSON(jsonFile, function(content) {
+        for(var i = 0; i<content.length; i++){
+            var message = content[i].content;
+            message = message.replace(/\r\n/g, "</p><p>")
+            document.getElementById("title"+i).innerHTML += content[i].title; 
+            document.getElementById("content"+i).innerHTML += "<p>" + message + "</p>"; 
+        }
+    });
 }
 window.onresize = function(event) {
     document.getElementById("background_img").style.width = $(window).width() + "px";

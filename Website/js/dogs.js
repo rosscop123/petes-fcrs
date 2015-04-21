@@ -33,6 +33,14 @@ window.onload = function() {
             }
         ]
     });
+    var jsonFile = 'Website.json';
+    $.getJSON(jsonFile, function(content) {
+        if(content.user != 'guest'){
+           document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/?logout=true">Logout</a>)';
+        } else {
+           document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/login.html">Login</a>)'; 
+        }  
+    });
 }
 window.onresize = function(event) {
     document.getElementById("background_img").style.width = $(window).width() + "px";

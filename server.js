@@ -50,11 +50,11 @@ function start() {
 
 // Response codes: see http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 var OK = 200,
-    forceGetRedirect = 303,
-    tempRedirect = 307,
-    NotFound = 404,
-    BadType = 415,
-    Error = 500;
+forceGetRedirect = 303,
+tempRedirect = 307,
+NotFound = 404,
+BadType = 415,
+Error = 500;
 
 // Succeed, sending back the content and its type.
 function succeed(response, type, content) {
@@ -98,6 +98,7 @@ function serve(request, response) {
         usersSessionID = usersSessionID.split('=')[1];
     }
     checkSessionID(usersSessionID, function(sessionDetails) {
+        //Set and insert  current user into JSON.
         if (sessionDetails != undefined) {
             currentUser = sessionDetails.username;
             updateTimeout(currentUser);
@@ -106,12 +107,75 @@ function serve(request, response) {
             user: currentUser
         };
         var outputFilename = 'Website/Website.json';
-        fs.writeFile(outputFilename, JSON.stringify(currentUserObj, null, 4), function(err) {
+        fs.writeFile(outputFilename, JSON.stringify(currentUserObj), function(err) {
             if (err) {
                 console.log(err);
             }
         });
-        if(request.method == "POST") {
+        if(request.method == "GET") {
+            var queries = url.query;
+            if(currentUser != 'guest'){
+                //Checks if login page if so redirects to
+                //homepage since already logged in.
+                if(queries.logout == 'true'){
+                    logoutUser(currentUser);
+                    redirect(response, "/", forceGetRedirect);
+                }
+                else if (ends(file, 'login.html')) {
+                    redirect(response, '/', forceGetRedirect);
+                }
+                //Grants access to private page since logged in.
+                else if (file.toLowerCase() == './website/newsform.html') {
+                    try {
+                        fs.readFile('./Private/newsForm.html', function(error, content) {
+                            if (error) return fail(response, NotFound);
+                            succeed(response, types[".html"], content);
+                        });
+                    } catch (err) {
+                        fail(response, Error);
+                        return Error
+                    }
+                } else if(file == "./Website/index.html") {
+                    getNewsData(5, function(newsData){
+                        var outputFilename = 'Website/News.json';
+                        fs.writeFile(outputFilename, JSON.stringify(newsData), function(err) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+                        var displayError = displayContent(request, response, file);
+                        if (displayError != OK) {
+                            return displayError;
+                        }
+                    });
+                } else {
+                    var displayError = displayContent(request, response, file);
+                    if (displayError != OK) {
+                        return displayError;
+                    }
+                }
+            } else{
+                if(file == "./Website/index.html") {
+                    getNewsData(5, function(newsData){
+                        var outputFilename = 'Website/News.json';
+                        fs.writeFile(outputFilename, JSON.stringify(newsData), function(err) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+                        var displayError = displayContent(request, response, file);
+                        if (displayError != OK) {
+                            return displayError;
+                        }
+                    });
+                } else{
+                    var displayError = displayContent(request, response, file);
+                    if (displayError != OK) {
+                        return displayError;
+                    }
+                }
+            }
+        } else if(request.method == "POST") {
             var body = '';
             request.on('data', function(data) {
                 body += data;
@@ -121,68 +185,21 @@ function serve(request, response) {
                 }
             });
             request.on('end', function() {
-                var queries = QS.parse(body);
-                if(queryIsLogin(queries) && currentUser == 'guest'){
-                    checkLoginDetails(queries, response, checkLoginCallback);
-                }
-                else if(queryIsContact(queries)){
-                    submitContactInfo(queries, request, response, file);
-                }
-            });
-        } else {
-            var queries = url.query;
-            if(queries.logout != undefined){
-                console.log("Logged out succeeded");
-                logout(currentUser);
-                redirect(response, "/", forceGetRedirect);
-            }
-            else if(currentUser != 'guest'){
-                if (ends(file, 'login.html')) {
-                    redirect(response, '/', forceGetRedirect);
-                }
-                if (file.toLowerCase() == './website/private.html') {
-                    try {
-                        fs.readFile('./Private/private.html', function(error, content) {
-                            if (error) return fail(response, NotFound);
-                            succeed(response, types[".html"], content);
-                        });
-                    } catch (err) {
-                        fail(response, Error);
-                        return Error
+            var queries = QS.parse(body);
+                if(file == "./Website/loginUser"){
+                    if(currentUser == "guest"){
+                        checkLoginDetails(queries, response, checkLoginCallback);
                     }
-                } else {
-                    var queries = url.query;
-                    if (queries != undefined && !isEmpty(queries)) {
-                        //checkLoginDetails(queries.username, queries.password);
-                    }
-                    var displayError = displayContent(request, response, file);
-                    if (displayError != OK) {
-                        return displayError;
-                    }
+                } else if(file == "./Website/submitContact"){
+                        submitContactInfo(queries, request, response);
+                } else if(file == "./Website/submitNews"){
+                        submitNewsArticle(queries, request, response);
                 }
-            }
-            var displayError = displayContent(request, response, file);
-            if (displayError != OK) {
-                return displayError;
-            }
+            }); 
         }
     });
 }
 
-function queryIsLogin(queries){
-    var propertyNames = Object.getOwnPropertyNames(queries);
-    if(propertyNames[0] == 'username' && propertyNames[1] == 'password'){
-        return true;
-    }
-    return false;
-}
-function queryIsContact(queries){
-    var propertyNames = Object.getOwnPropertyNames(queries);
-    if(propertyNames[0] == 'Name' && propertyNames[1] == 'Email' && propertyNames[2] == 'Message'){
-        return true;
-    }
-    return false;
-}
 function checkLoginCallback(loginSuccessful, queries, response){
     if (loginSuccessful) {
         console.log("Logged In Succesfully");
@@ -242,7 +259,7 @@ function urlPathChecks(request, response, file) {
         fail(response, NotFound);
         return -1;
     }
-    if (!noParentDir(file) && !admin) {
+    if (!noParentDir(file)) {
         fail(response, NotFound);
         return -1;
     }
@@ -340,13 +357,23 @@ function checkLoginDetails(queries, response, callback) {
     ps.finalize();
 }
 
-function submitContactInfo(queries, request, response, file, callback) {
+function submitContactInfo(queries, request, response) {
     var name = queries.Name;
     var email = queries.Email;
     var message = queries.Message;
     var ps = db.prepare("insert into messages values (?, ?, ?, ?)", errorFunc);
     ps.all(name, email, message, new Date(), function(err, rows) {
-        displayContent(request, response, file);
+        redirect(response, "/contact.html?submitContact=true", forceGetRedirect);
+    });
+    ps.finalize();
+}
+
+function submitNewsArticle(queries, request, response) {
+    var title = queries.Title;
+    var content = queries.Content;
+    var ps = db.prepare("insert into news values (?, ?, '" + new Date() + "')", errorFunc);
+    ps.all(title, content, function(err, rows) {
+        redirect(response, '/', forceGetRedirect);
     });
     ps.finalize();
 }
@@ -401,9 +428,18 @@ function checkSessionID(sessionID, callback) {
     ps.finalize();
 }
 
-function logout(currentUser){
+function logoutUser(currentUser){
     var ps = db.prepare("delete from sessionIDs where username = ?", errorFunc);
     ps.run(currentUser);
+    ps.finalize();
+}
+
+function getNewsData(numOfArticles, callback){
+    var ps = db.prepare("select * from news order by date DESC LIMIT ?", errorFunc);
+    ps.all(numOfArticles, function(err, rows){
+        if (err) throw err;
+        callback(rows);
+    });
     ps.finalize();
 }
 
