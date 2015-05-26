@@ -11,7 +11,8 @@ window.onload = function() {
     	    document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/?logout=true">Logout</a>)';
             document.getElementById("addNews").style.display = "block";
 	    } else {
-           document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/login.html">Login</a>)'; 
+           document.getElementById("userWelcomeInner").innerHTML += content.user + 
+                ' (<a href="/login.html">Login</a>/<a href="/signUp.html">Sign Up</a>)'; 
         }  
     });
     var jsonFile = 'News.json';
@@ -19,8 +20,14 @@ window.onload = function() {
         for(var i = 0; i<content.length; i++){
             var message = content[i].content;
             message = message.replace(/\r\n/g, "</p><p>")
-            document.getElementById("title"+i).innerHTML += content[i].title; 
-            document.getElementById("content"+i).innerHTML += "<p>" + message + "</p>"; 
+            document.getElementById("title"+i).innerHTML = content[i].title; 
+            document.getElementById("content"+i).innerHTML = "<p>" + message + "</p>"; 
+            if(content[i].imgDir != null){            
+                document.getElementById("img"+i).innerHTML = '<img src="' +
+                    content[i].imgDir + '" alt="' + content[i].imgDir + '" />';
+            } else{
+                document.getElementById("img"+i).style.display = 'none';
+            }
         }
     });
 }

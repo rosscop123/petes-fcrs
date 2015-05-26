@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB">
+
+<head>
+    <title>Sign Up</title>
+
+    <meta charset="utf-8" />
+
+    <link href="https://fonts.googleapis.com/css?family=Arvo:400,400italic,700,700italic" rel="stylesheet" type="text/css" />
+
+    <link rel="stylesheet" href="css/gumby.css" />
+    <link rel="stylesheet" href="css/style.css" />
+
+    <script src="js/libs/modernizr-2.6.2.min.js"></script>
+    <script src="js/libs/jquery-2.0.2.min.js"></script>
+
+    <script src="js/libs/gumby.js"></script>
+    <script src="js/libs/ui/gumby.retina.js"></script>
+    <script src="js/libs/ui/gumby.fixed.js"></script>
+    <script src="js/libs/ui/gumby.skiplink.js"></script>
+    <script src="js/libs/ui/gumby.toggleswitch.js"></script>
+    <script src="js/libs/ui/gumby.checkbox.js"></script>
+    <script src="js/libs/ui/gumby.radiobtn.js"></script>
+    <script src="js/libs/ui/gumby.tabs.js"></script>
+    <script src="js/libs/ui/gumby.navbar.js"></script>
+    <script src="js/libs/ui/jquery.validation.js"></script>
+    <script src="bower_components/gumby-parallax/gumby.parallax.js"></script>
+    <script src="js/libs/gumby.init.js"></script>
+    <script src="js/plugins.js"></script>
+    <script src="js/gumbyMain.js"></script>
+    <script type="text/javascript" src="js/libs/livevalidation.min.js"></script>
+    <script type="text/javascript" src="js/signUp.js"></script>
+
+</head>
+
+<body>
+    <header id="includeHeader" class="navbar header_navbar"></header>
+    <div id="includeGallery"></div>
+    <div id="background_img" class="row parallax">
+        <div id="includeSocialBar"></div>
+        <div class="row contact_section">
+            <div class="main_content">
+                <h3> sign up <span id="formFailure">(Sign Up Failed: Invalid <span id="failureReason"></span>)</span></h3>
+                <div class="form_wrapper">
+                    <form id="signUpForm" class="form" action="submitSignUp" method="post">
+                        <div class="field row">
+                            <div class="picker whitebg">
+                                <select name="Title">
+                                    <option> Mr. </option>
+                                    <option> Mrs. </option>
+                                    <option> Miss. </option>
+                                    <option> Ms. </option>
+                                    <option> Dr. </option>
+                                    <option> Sir. </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field row">
+                            <input name="forenames" id="forenamesField" class="input five columns" type="text" placeholder="Forename(s)" />
+                            <div class="one columns"></div>
+                            <input name="surname" id="surnameField" class="input six columns" type="text" placeholder="Surname" />
+                        </div>
+                        <div class="field row">
+                            <input name="email" id="emailField" class="input seven columns" type="text" placeholder="Email" />
+                        </div>
+                        <div class="field row">
+                            <input name="username" id="usernameField" class="input seven columns" type="text" placeholder="Username" />
+                        </div>
+                        <div class="field row">
+                            <input name="password" id="passwordField" class="input seven columns" type="password" placeholder="Password" />
+                        </div>
+                        <div class="field row">
+                            <input name="retypePassword" id="passwordField2" class="input seven columns" type="Password" placeholder="Retype Password"></input>
+                        </div>
+                        <div class="medium default btn submitButton">
+                            <input type="submit" value="Submit" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <div id="includeFooter"></div>
+    </footer>
+
+</body>
+
+</html>

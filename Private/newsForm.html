@@ -26,10 +26,10 @@
     <script src="js/libs/ui/jquery.validation.js"></script>
     <script src="bower_components/gumby-parallax/gumby.parallax.js"></script>
     <script src="js/libs/gumby.init.js"></script>
-
     <script src="js/plugins.js"></script>
     <script src="js/gumbyMain.js"></script>
-    <script type="text/javascript" src="js/contact.js"></script>
+    <script type="text/javascript" src="js/libs/livevalidation.min.js"></script>
+    <script type="text/javascript" src="js/newsForm.js"></script>
 
 </head>
 
@@ -41,14 +41,17 @@
         <div class="row contact_section">
             <div class="main_content">
                 <h3> Enter News Article </h3>
-                <div class="contact_details">
-                    <form id="emailForm" class="email_form" action="submitNews" method="post">
+                <div class="form_wrapper">
+                    <form id="newsForm" class="form" enctype="multipart/form-data" action="submitNews" method="post">
                         <div class="field">
-                            <input name="Title" class="input" type="text" placeholder="Title" />
+                            <input name="Title" id="titleField" class="input" type="text" placeholder="Title" />
                         </div>
                         <div class="field">
-                            <textarea name="Content" class="input textarea" placeholder="Content"></textarea>
+                            <textarea name="Content" id="contentField" class="input textarea" placeholder="Content"></textarea>
                         </div>
+                        <div class="field">
+                            <input type="file" name="upload" multiple="multiple" />
+                        </div> 
                         <div class="medium default btn submitButton">
                             <input type="submit" value="Submit" />
                         </div>

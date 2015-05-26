@@ -14,13 +14,10 @@ window.onload = function() {
         }  
     });
     getUrlQueries();
-    var Name = new LiveValidation( "nameField");
-    Name.add( Validate.Presence);
-    var Email = new LiveValidation( "emailField");
-    Email.add( Validate.Presence);
-    Email.add( Validate.Email);
-    var Message = new LiveValidation( "messageField");
-    Message.add( Validate.Presence);
+    var Title = new LiveValidation( "titleField");
+    Title.add( Validate.Presence);
+    var Content = new LiveValidation( "contentField");
+    Content.add( Validate.Presence);
 };
 window.onresize = function(event) {
     document.getElementById("background_img").style.width = $(window).width() + "px";

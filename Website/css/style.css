@@ -81,6 +81,8 @@ However, this blank file is available if you prefer
 }
 .main_content {
     background-color: rgba(255, 255, 255, 0.6);
+    padding-top: 1em;
+    padding-left: 1em;
 }
 .news {
     padding-left: 2em;
@@ -89,8 +91,15 @@ However, this blank file is available if you prefer
 .news_subheading {
     font-weight: bold;
 }
-.article_content img {
-    padding-top: 0.5em;
+.floatRight{
+    padding-top: 1em;
+    padding-right: 1em;
+    padding-bottom: 1em;
+    float: right;
+    width: 20%;
+}
+.floatLeft{
+    padding-top: 1em;
     padding-right: 1em;
     padding-bottom: 1em;
     float: left;
@@ -100,7 +109,7 @@ However, this blank file is available if you prefer
     margin-top: 2em;
     margin-bottom: 2em;
 }
-.contact_details {
+.form_wrapper {
     margin-left: 3em;
     margin-right: 3em;
 }
@@ -108,8 +117,8 @@ form {
     margin-bottom: 0;
     padding-bottom: 1em;
 }
-.email_form {
-    padding-top: 2em;
+.form {
+    padding-top: 1em;
 }
 footer {
     position: relative;
@@ -212,8 +221,10 @@ footer {
 .report_content img{
     width: 200px;
 }
-#loginFailure {
+#formFailure {
     visibility: hidden;
+    color: red;
+    font-size: 0.6em;
 }
 #userWelcome {
     position:absolute; 
@@ -227,6 +238,28 @@ footer {
     vertical-align:middle; 
 }
 #addNews {
-    right: 2em;
+    text-align: right;
+    color: #505050;
+    font-weight: bold;
+    font-size: 150%;
+    padding-top: 1em;
+    display: none;
+}
+.sadSmiley {
+    text-align: center;
+    font-weight: bold;
+    font-size: 10em;
+}
+.LV_invalid_field {
+    background: #f0c5c5 !important;
+}
+.LV_valid_field {
+    background: #c0eeaa !important;
+    background-color: #c0eeaa !important;
+}
+.LV_valid {
+    display: none;
+}
+.LV_invalid {
     display: none;
 }

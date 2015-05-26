@@ -8,6 +8,8 @@ var path = require('path');
 var QS = require('querystring');
 var sql = require('sqlite3');
 var crypto = require('crypto');
+var multiparty = require('multiparty');
+var util = require('util');
 sql.verbose();
 var port = 5000;
 var db = new sql.Database("Pete's FCRs.db");
@@ -35,6 +37,7 @@ var types = {
     '.doc': '#proprietary, non-standard, platform dependent, ' +
         'closed source, unstable over versions and installations, ' +
         'contains unsharable personal and printer preferences, use .pdf',
+    '.ico': 'image/ico'
 };
 
 function start() {
@@ -44,17 +47,18 @@ function start() {
         cert: cert
     };
     var service = HTTPS.createServer(options, serve);
-    service.listen(process.env.PORT || port);
-    console.log("Node app is running at localhost:" + process.env.PORT);
+    port = (process.env.PORT || port);
+    service.listen(port);
+    console.log("Node app is running at localhost:" + port);
 }
 
 // Response codes: see http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 var OK = 200,
-forceGetRedirect = 303,
-tempRedirect = 307,
-NotFound = 404,
-BadType = 415,
-Error = 500;
+    forceGetRedirect = 303,
+    tempRedirect = 307,
+    NotFound = 404,
+    BadType = 415,
+    Error = 500;
 
 // Succeed, sending back the content and its type.
 function succeed(response, type, content) {
@@ -78,7 +82,14 @@ function redirect(response, url, code) {
 // Give a failure response with a given code.
 function fail(response, code) {
     response.writeHead(code);
-    response.end();
+    try {
+        fs.readFile("./Website/PageNotFound.html", function(error, content) {
+            response.write(content);
+            response.end();
+        });
+    } catch (err) {
+        return error
+    }
 }
 
 function serve(request, response) {
@@ -112,16 +123,17 @@ function serve(request, response) {
                 console.log(err);
             }
         });
-        if(request.method == "GET") {
+        if (request.method == "GET") {
             var queries = url.query;
-            if(currentUser != 'guest'){
+            if (currentUser != 'guest') {
                 //Checks if login page if so redirects to
                 //homepage since already logged in.
-                if(queries.logout == 'true'){
+                if (queries.logout == 'true') {
                     logoutUser(currentUser);
                     redirect(response, "/", forceGetRedirect);
-                }
-                else if (ends(file, 'login.html')) {
+                } else if (ends(file, 'login.html')) {
+                    redirect(response, '/', forceGetRedirect);
+                } else if (ends(file, 'signUp.html')) {
                     redirect(response, '/', forceGetRedirect);
                 }
                 //Grants access to private page since logged in.
@@ -135,8 +147,8 @@ function serve(request, response) {
                         fail(response, Error);
                         return Error
                     }
-                } else if(file == "./Website/index.html") {
-                    getNewsData(5, function(newsData){
+                } else if (file == "./Website/index.html") {
+                    getNewsData(5, function(newsData) {
                         var outputFilename = 'Website/News.json';
                         fs.writeFile(outputFilename, JSON.stringify(newsData), function(err) {
                             if (err) {
@@ -154,9 +166,9 @@ function serve(request, response) {
                         return displayError;
                     }
                 }
-            } else{
-                if(file == "./Website/index.html") {
-                    getNewsData(5, function(newsData){
+            } else {
+                if (file == "./Website/index.html") {
+                    getNewsData(5, function(newsData) {
                         var outputFilename = 'Website/News.json';
                         fs.writeFile(outputFilename, JSON.stringify(newsData), function(err) {
                             if (err) {
@@ -168,41 +180,44 @@ function serve(request, response) {
                             return displayError;
                         }
                     });
-                } else{
+                } else {
                     var displayError = displayContent(request, response, file);
                     if (displayError != OK) {
                         return displayError;
                     }
                 }
             }
-        } else if(request.method == "POST") {
-            var body = '';
-            request.on('data', function(data) {
-                body += data;
-                // Too much POST data, kill the connection!
-                if (body.length > 1e6) {
-                    request.connection.destroy();
-                }
-            });
-            request.on('end', function() {
-            var queries = QS.parse(body);
-                if(file == "./Website/loginUser"){
-                    if(currentUser == "guest"){
-                        checkLoginDetails(queries, response, checkLoginCallback);
+        } else if (request.method == "POST") {
+            if (file == "./Website/submitNews") {
+                submitNewsArticle(request, response);
+            } else {
+                var body = '';
+                request.on('data', function(data) {
+                    body += data;
+                    // Too much POST data, kill the connection!
+                    if (body.length > 1e6) {
+                        request.connection.destroy();
                     }
-                } else if(file == "./Website/submitContact"){
+                });
+                request.on('end', function() {
+                    var queries = QS.parse(body);
+                    if (file == "./Website/loginUser") {
+                        if (currentUser == "guest") {
+                            checkLoginDetails(queries, response, checkLoginCallback);
+                        }
+                    } else if (file == "./Website/submitContact") {
                         submitContactInfo(queries, request, response);
-                } else if(file == "./Website/submitNews"){
-                        submitNewsArticle(queries, request, response);
-                }
-            }); 
+                    } else if (file == "./Website/submitSignUp") {
+                        submitSignUp(queries, request, response);
+                    }
+                });
+            }
         }
     });
 }
 
-function checkLoginCallback(loginSuccessful, queries, response){
+function checkLoginCallback(loginSuccessful, queries, response) {
     if (loginSuccessful) {
-        console.log("Logged In Succesfully");
         try {
             var sessionID = crypto.randomBytes(64).toString('hex');
         } catch (ex) {
@@ -220,7 +235,6 @@ function checkLoginCallback(loginSuccessful, queries, response){
             redirect(response, '/', forceGetRedirect);
         });
     } else {
-        console.log("Log In Failed");
         redirect(response, '/login.html?loginFailed=true', forceGetRedirect);
     }
 }
@@ -334,23 +348,21 @@ function isEmpty(obj) {
 
 //DATABASE FUNCTIONS
 function checkLoginDetails(queries, response, callback) {
-    var username = queries.username;
+    var username = queries.username.toLowerCase();
     var password = queries.password;
     var ps = db.prepare("select * from users where username = ?", errorFunc);
     ps.all(username, function(err, rows) {
         if (err) throw err;
-        if(rows.length == 1){
+        if (rows.length == 1) {
             var saltedPassword = toHex(password) + rows[0].salt;
             var sha256 = crypto.createHash('sha256');
             sha256.update(saltedPassword);
-            if(sha256.digest('hex') == rows[0].password){
+            if (sha256.digest('hex') == rows[0].password) {
                 callback(true, queries, response);
-            }
-            else{
+            } else {
                 callback(false, queries, response);
             }
-        }
-        else{
+        } else {
             callback(false, queries, response);
         }
     });
@@ -361,6 +373,16 @@ function submitContactInfo(queries, request, response) {
     var name = queries.Name;
     var email = queries.Email;
     var message = queries.Message;
+    if(!isString(name)){
+        redirect(response, "/contact.html?submitContactFailed=invalidName", forceGetRedirect);
+        return;
+    } else if(!checkValidEmail(email)){
+        redirect(response, "/contact.html?submitContactFailed=invalidEmail", forceGetRedirect);
+        return;
+    } else if(!isString(message)){
+        redirect(response, "/contact.html?submitContactFailed=invalidMessage", forceGetRedirect);
+        return;
+    }
     var ps = db.prepare("insert into messages values (?, ?, ?, ?)", errorFunc);
     ps.all(name, email, message, new Date(), function(err, rows) {
         redirect(response, "/contact.html?submitContact=true", forceGetRedirect);
@@ -368,13 +390,135 @@ function submitContactInfo(queries, request, response) {
     ps.finalize();
 }
 
-function submitNewsArticle(queries, request, response) {
-    var title = queries.Title;
-    var content = queries.Content;
-    var ps = db.prepare("insert into news values (?, ?, '" + new Date() + "')", errorFunc);
-    ps.all(title, content, function(err, rows) {
-        redirect(response, '/', forceGetRedirect);
+function submitNewsArticle(request, response) {
+    var form = new multiparty.Form();
+    var imgDir = "img/uploadedImgs/";
+    form.uploadDir = "./Website/" + imgDir;
+    var ps = db.prepare("insert into news values (?, ?, ?, '" + new Date() + "')", errorFunc);
+    form.parse(request, function(err, fields, files) {
+        if (fields.Title[0] != '' && fields.Content[0] != '') {
+            if (files.upload[0].originalFilename == '') {
+                imgDir = null;
+                fs.unlink(files.upload[0].path, function(err) {
+                    if (err) throw err;
+                    ps.run(fields.Title[0], fields.Content[0], imgDir);
+                    redirect(response, '/', forceGetRedirect);
+                    ps.finalize();
+                });
+            } else {
+                ps.run(fields.Title[0], fields.Content[0], files.upload[0].path.split("Website/").pop());
+                redirect(response, '/', forceGetRedirect);
+                ps.finalize();
+            }
+        } else if (fields.Title[0] == '') {
+            fs.unlink(files.upload[0].path, function(err) {
+                if (err) throw err;
+                redirect(response, '/newsForm.html?invalidTitle', forceGetRedirect);
+                ps.finalize();
+            });
+        } else if (fields.Content[0] == '') {
+            fs.unlink(files.upload[0].path, function(err) {
+                if (err) throw err;
+                redirect(response, '/newsForm.html?invalidContent', forceGetRedirect);
+                ps.finalize();
+            });
+        }
     });
+    // var ps = db.prepare("insert into news values (?, ?, '" + new Date() + "')", errorFunc);
+    // ps.all(title, content, function(err, rows) {
+
+}
+
+function isString(value) {
+    if (typeof value == 'string') {
+        if (value != "") {
+            return true;
+        }
+    }
+    return false;
+}
+
+function checkInputValues(queries) {
+    var title = queries.Title;
+    var forenames = queries.forenames;
+    var surname = queries.surname;
+    var email = queries.email;
+    var username = queries.username;
+    var password = queries.password;
+    var retypePassword = queries.retypePassword;
+    if (password != retypePassword) {
+        return 'MissMatchedPasswords';
+    } else if (!isString(title)) {
+        return 'Title';
+    } else if (!isString(forenames)) {
+        return 'Forenames';
+    } else if (!isString(surname)) {
+        return 'Surname';
+    } else if (!isString(email) || !checkValidEmail(email)) {
+        return 'Email';
+    } else if (!isString(username)) {
+        return 'Username';
+    } else if (!isString(password)) {
+        return 'Password';
+    }
+    return true;
+}
+
+function checkValidEmail(email) {
+    var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+    return re.test(email);
+}
+
+function checkUniqueEntries(username, email, callback) {
+    var ps = db.prepare("select * from users where username=? OR email=?", errorFunc);
+    ps.all(username, email, function(err, rows) {
+        if (err) throw err;
+        if (rows.length == 1) {
+            if (username == rows[0].username) {
+                callback('Username');
+            } else if (email == rows[0].email) {
+                callback('Email');
+            } else {
+                callback(undefined);
+            }
+        } else {
+            callback(undefined);
+        }
+    });
+    ps.finalize();
+}
+
+function submitSignUp(queries, request, response) {
+    var email = queries.email.toLowerCase();
+    var username = queries.username.toLowerCase();
+    var checkedValues = checkInputValues(queries);
+    if (checkedValues == true) {
+        checkUniqueEntries(username, email, function(valuePresent) {
+            if (valuePresent != undefined) {
+                redirect(response, '/signUp.html?signUpFailed=NonUnique' + valuePresent, forceGetRedirect);
+            } else {
+                createUser(queries);
+                redirect(response, '/signUp.html?signUpSuccessful=true', forceGetRedirect);
+            }
+        });
+    } else {
+        redirect(response, '/signUp.html?signUpFailed=invalid' + checkedValues, forceGetRedirect);
+    }
+}
+
+function createUser(queries) {
+    var title = queries.Title;
+    var forenames = queries.forenames;
+    var surname = queries.surname;
+    var email = queries.email.toLowerCase();
+    var username = queries.username.toLowerCase();
+    var password = queries.password;
+    var salt = crypto.randomBytes(32).toString('hex');
+    password = toHex(password) + salt;
+    var sha256 = crypto.createHash('sha256');
+    sha256.update(password);
+    var ps = db.prepare("insert INTO users values (?, ?, ?, ?, ?, ?, ?)", errorFunc);
+    ps.run(username, sha256.digest('hex'), salt, title, forenames, surname, email);
     ps.finalize();
 }
 
@@ -428,15 +572,15 @@ function checkSessionID(sessionID, callback) {
     ps.finalize();
 }
 
-function logoutUser(currentUser){
+function logoutUser(currentUser) {
     var ps = db.prepare("delete from sessionIDs where username = ?", errorFunc);
     ps.run(currentUser);
     ps.finalize();
 }
 
-function getNewsData(numOfArticles, callback){
+function getNewsData(numOfArticles, callback) {
     var ps = db.prepare("select * from news order by date DESC LIMIT ?", errorFunc);
-    ps.all(numOfArticles, function(err, rows){
+    ps.all(numOfArticles, function(err, rows) {
         if (err) throw err;
         callback(rows);
     });
@@ -449,8 +593,8 @@ function errorFunc(e, row) {
 
 function toHex(str) {
     var result = '';
-    for (var i=0; i<str.length; i++) {
-      result += str.charCodeAt(i).toString(16);
+    for (var i = 0; i < str.length; i++) {
+        result += str.charCodeAt(i).toString(16);
     }
     return result;
 }

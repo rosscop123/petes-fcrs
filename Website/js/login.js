@@ -9,10 +9,15 @@ window.onload = function() {
         if(content.user != 'guest'){
            document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/?logout=true">Logout</a>)';
         } else {
-           document.getElementById("userWelcomeInner").innerHTML += content.user; 
+           document.getElementById("userWelcomeInner").innerHTML += content.user + 
+                ' (<a href="/signUp.html">Sign Up</a>)'; 
         }  
     });
     getUrlQueries();
+    var Username = new LiveValidation( "usernameField");
+    Username.add( Validate.Presence);
+    var Password1 = new LiveValidation( "passwordField");
+    Password1.add( Validate.Presence);
 };
 window.onresize = function(event) {
     document.getElementById("background_img").style.width = $(window).width() + "px";
@@ -23,6 +28,6 @@ function getUrlQueries()
     var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
     hash = hashes[0].split('=');
     if(hash[0] == 'loginFailed' && hash[1] == 'true'){
-    	document.getElementById("loginFailure").style.visibility = 'visible';
+    	document.getElementById("formFailure").style.visibility = 'visible';
     }
 }

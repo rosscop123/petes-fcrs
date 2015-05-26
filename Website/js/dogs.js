@@ -38,7 +38,8 @@ window.onload = function() {
         if(content.user != 'guest'){
            document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/?logout=true">Logout</a>)';
         } else {
-           document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/login.html">Login</a>)'; 
+           document.getElementById("userWelcomeInner").innerHTML += content.user + 
+                ' (<a href="/login.html">Login</a>/<a href="/signUp.html">Sign Up</a>)';
         }  
     });
 }
