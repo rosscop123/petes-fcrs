@@ -1,6 +1,8 @@
 'use strict'
 var HTTP = require('http');
 var HTTPS = require('https');
+var connect = require('connect');
+var serveStatic = require('serve-static');
 var QS = require('querystring');
 var URL = require('url');
 var fs = require('fs');
@@ -11,7 +13,7 @@ var crypto = require('crypto');
 var multiparty = require('multiparty');
 var util = require('util');
 sql.verbose();
-var port = 5000;
+var port = 80;
 var db = new sql.Database("Pete's FCRs.db");
 
 
@@ -42,11 +44,23 @@ var types = {
 
 function start() {
     // var service = HTTP.createServer(serve);
-    var options = {
-        key: key,
-        cert: cert
-    };
-    var service = HTTPS.createServer(options, serve);
+    // var options = {
+    //     key: key,
+    //     cert: cert
+    // };
+    // var service = HTTPS.createServer(options, serve);
+    // port = (process.env.PORT || port);
+    // service.listen(port);
+    // console.log("Node app is running at localhost:" + port);
+    console.log('\n\n--- Node Version: ' + process.version + ' ---');
+    // var app = connect()
+    // .use(serveStatic("Website"))
+    // .use(serve)
+    // var options = {
+    //     key: key,
+    //     cert: cert
+    // };
+    var service = HTTP.createServer(serve);
     port = (process.env.PORT || port);
     service.listen(port);
     console.log("Node app is running at localhost:" + port);
@@ -133,8 +147,8 @@ function serve(request, response) {
                     redirect(response, "/", forceGetRedirect);
                 } else if (ends(file, 'login.html')) {
                     redirect(response, '/', forceGetRedirect);
-                } else if (ends(file, 'signUp.html')) {
-                    redirect(response, '/', forceGetRedirect);
+                // } else if (ends(file, 'signUp.html')) {
+                //     redirect(response, '/', forceGetRedirect);
                 }
                 //Grants access to private page since logged in.
                 else if (file.toLowerCase() == './website/newsform.html') {
@@ -149,7 +163,7 @@ function serve(request, response) {
                     }
                 } else if (file == "./Website/index.html") {
                     getNewsData(5, function(newsData) {
-                        var outputFilename = 'Website/News.json';
+                        var outputFilename = 'Website/New.json';
                         fs.writeFile(outputFilename, JSON.stringify(newsData), function(err) {
                             if (err) {
                                 console.log(err);
@@ -207,8 +221,8 @@ function serve(request, response) {
                         }
                     } else if (file == "./Website/submitContact") {
                         submitContactInfo(queries, request, response);
-                    } else if (file == "./Website/submitSignUp") {
-                        submitSignUp(queries, request, response);
+                    // } else if (file == "./Website/submitSignUp") {
+                    //     submitSignUp(queries, request, response);
                     }
                 });
             }
@@ -438,73 +452,73 @@ function isString(value) {
     return false;
 }
 
-function checkInputValues(queries) {
-    var title = queries.Title;
-    var forenames = queries.forenames;
-    var surname = queries.surname;
-    var email = queries.email;
-    var username = queries.username;
-    var password = queries.password;
-    var retypePassword = queries.retypePassword;
-    if (password != retypePassword) {
-        return 'MissMatchedPasswords';
-    } else if (!isString(title)) {
-        return 'Title';
-    } else if (!isString(forenames)) {
-        return 'Forenames';
-    } else if (!isString(surname)) {
-        return 'Surname';
-    } else if (!isString(email) || !checkValidEmail(email)) {
-        return 'Email';
-    } else if (!isString(username)) {
-        return 'Username';
-    } else if (!isString(password)) {
-        return 'Password';
-    }
-    return true;
-}
+// function checkInputValues(queries) {
+//     var title = queries.Title;
+//     var forenames = queries.forenames;
+//     var surname = queries.surname;
+//     var email = queries.email;
+//     var username = queries.username;
+//     var password = queries.password;
+//     var retypePassword = queries.retypePassword;
+//     if (password != retypePassword) {
+//         return 'MissMatchedPasswords';
+//     } else if (!isString(title)) {
+//         return 'Title';
+//     } else if (!isString(forenames)) {
+//         return 'Forenames';
+//     } else if (!isString(surname)) {
+//         return 'Surname';
+//     } else if (!isString(email) || !checkValidEmail(email)) {
+//         return 'Email';
+//     } else if (!isString(username)) {
+//         return 'Username';
+//     } else if (!isString(password)) {
+//         return 'Password';
+//     }
+//     return true;
+// }
 
-function checkValidEmail(email) {
-    var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
-    return re.test(email);
-}
+// function checkValidEmail(email) {
+//     var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+//     return re.test(email);
+// }
 
-function checkUniqueEntries(username, email, callback) {
-    var ps = db.prepare("select * from users where username=? OR email=?", errorFunc);
-    ps.all(username, email, function(err, rows) {
-        if (err) throw err;
-        if (rows.length == 1) {
-            if (username == rows[0].username) {
-                callback('Username');
-            } else if (email == rows[0].email) {
-                callback('Email');
-            } else {
-                callback(undefined);
-            }
-        } else {
-            callback(undefined);
-        }
-    });
-    ps.finalize();
-}
+// function checkUniqueEntries(username, email, callback) {
+//     var ps = db.prepare("select * from users where username=? OR email=?", errorFunc);
+//     ps.all(username, email, function(err, rows) {
+//         if (err) throw err;
+//         if (rows.length == 1) {
+//             if (username == rows[0].username) {
+//                 callback('Username');
+//             } else if (email == rows[0].email) {
+//                 callback('Email');
+//             } else {
+//                 callback(undefined);
+//             }
+//         } else {
+//             callback(undefined);
+//         }
+//     });
+//     ps.finalize();
+// }
 
-function submitSignUp(queries, request, response) {
-    var email = queries.email.toLowerCase();
-    var username = queries.username.toLowerCase();
-    var checkedValues = checkInputValues(queries);
-    if (checkedValues == true) {
-        checkUniqueEntries(username, email, function(valuePresent) {
-            if (valuePresent != undefined) {
-                redirect(response, '/signUp.html?signUpFailed=NonUnique' + valuePresent, forceGetRedirect);
-            } else {
-                createUser(queries);
-                redirect(response, '/signUp.html?signUpSuccessful=true', forceGetRedirect);
-            }
-        });
-    } else {
-        redirect(response, '/signUp.html?signUpFailed=invalid' + checkedValues, forceGetRedirect);
-    }
-}
+// function submitSignUp(queries, request, response) {
+//     var email = queries.email.toLowerCase();
+//     var username = queries.username.toLowerCase();
+//     var checkedValues = checkInputValues(queries);
+//     if (checkedValues == true) {
+//         checkUniqueEntries(username, email, function(valuePresent) {
+//             if (valuePresent != undefined) {
+//                 redirect(response, '/signUp.html?signUpFailed=NonUnique' + valuePresent, forceGetRedirect);
+//             } else {
+//                 createUser(queries);
+//                 redirect(response, '/signUp.html?signUpSuccessful=true', forceGetRedirect);
+//             }
+//         });
+//     } else {
+//         redirect(response, '/signUp.html?signUpFailed=invalid' + checkedValues, forceGetRedirect);
+//     }
+// }
 
 function createUser(queries) {
     var title = queries.Title;

@@ -31,12 +31,12 @@ function startup() {
         ps.finalize();
         db.run("create table users (username NOT NULL, password, salt, title, forename, surname, email, constraint pk_users PRIMARY KEY (username))", err);
         // var salt = crypto.randomBytes(32).toString('hex');
-        // var password = toHex('password') + salt;
+        // var password = toHex('Kobi2009') + salt;
         // var sha256 = crypto.createHash('sha256');
         // sha256.update(password);
         // db.run("insert into users values ('admin', '" + sha256.digest('hex') + "', '" +
-          // salt + "', 'rm12913@my.bristol.ac.uk')", err);
-        db.close();
+        //   salt + "', 'Mr', 'Pete', 'McQuillan', '' 'petesfcrs@gmail.com')", err);
+        // db.close();
 }
 function err(e) { if (e) throw e; }
 

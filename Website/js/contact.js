@@ -7,10 +7,10 @@ window.onload = function() {
     var jsonFile = 'Website.json';
 	$.getJSON(jsonFile, function(content) {
         if(content.user != 'guest'){
-    	   document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="/?logout=true">Logout</a>)';
+    	   document.getElementById("userWelcomeInner").innerHTML += content.user + ' (<a href="http://www.petesfcrs.com/?logout=true">Logout</a>)';
 	    } else {
-           document.getElementById("userWelcomeInner").innerHTML += content.user + 
-                ' (<a href="/login.html">Login</a>/<a href="/signUp.html">Sign Up</a>)'; 
+           document.getElementById("userWelcomeInner").innerHTML += content.user; //+ 
+                // ' (<a href="/login.html">Login</a>/<a href="/signUp.html">Sign Up</a>)'; 
         }  
     });
     getUrlQueries();
@@ -23,7 +23,7 @@ window.onload = function() {
     Message.add( Validate.Presence);
 };
 window.onresize = function(event) {
-    document.getElementById("background_img").style.width = $(window).width() + "px";
+    document.getElementById("background_img").style.backgroundSize = $(window).width() + "px ";
 };
 function getUrlQueries()
 {
